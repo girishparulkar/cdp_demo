@@ -1,7 +1,7 @@
 # generate_data.py
 """
 Complete Data Generation for StreamMart E-commerce Demo
-Generates realistic historical and real-time data for the demo
+Generates realistic historical and real-time data in CSV format for the demo
 
 Usage:
     python generate_data.py --mode historical --events 10000
@@ -304,32 +304,59 @@ def generate_historical_data(num_events=10000, num_transactions=500, output_dir=
         session_events = generate_user_session(session_start_time=session_time)
         clickstream_events.extend(session_events)
     
-    # Save clickstream
-    clickstream_file = f"{output_dir}/clickstream_historical.json"
-    with open(clickstream_file, 'w') as f:
-        for event in clickstream_events[:num_events]:  # Limit to requested number
-            f.write(json.dumps(event) + '\n')
+    # Save clickstream as CSV
+    clickstream_file = f"{output_dir}/clickstream_historical.csv"
+    df_clickstream = pd.DataFrame(clickstream_events[:num_events])
+    df_clickstream.to_csv(clickstream_file, index=False)
     
     print(f"✅ Saved {len(clickstream_events[:num_events])} events to {clickstream_file}")
     
     # Generate transactions
     print(f"🔄 Generating {num_transactions} historical transactions...")
     transactions = []
+    transaction_items = []
     
     for i in range(num_transactions):
         txn_time = datetime.now() - timedelta(
             days=random.randint(0, 30),
             hours=random.randint(0, 23)
         )
-        transactions.append(generate_transaction(timestamp=txn_time))
+        txn = generate_transaction(timestamp=txn_time)
+        
+        # Flatten transaction (remove nested structures)
+        flat_txn = {
+            "transaction_id": txn["transaction_id"],
+            "user_id": txn["user_id"],
+            "transaction_timestamp": txn["transaction_timestamp"],
+            "num_items": txn["num_items"],
+            "subtotal": txn["subtotal"],
+            "tax": txn["tax"],
+            "shipping": txn["shipping"],
+            "discount": txn["discount"],
+            "total": txn["total"],
+            "payment_method": txn["payment_method"],
+            "order_status": txn["order_status"]
+        }
+        transactions.append(flat_txn)
+        
+        # Extract items into separate list
+        for item in txn["items"]:
+            item["transaction_id"] = txn["transaction_id"]
+            transaction_items.append(item)
     
-    # Save transactions
-    transactions_file = f"{output_dir}/transactions_historical.json"
-    with open(transactions_file, 'w') as f:
-        for txn in transactions:
-            f.write(json.dumps(txn) + '\n')
+    # Save transactions as CSV
+    transactions_file = f"{output_dir}/transactions_historical.csv"
+    df_transactions = pd.DataFrame(transactions)
+    df_transactions.to_csv(transactions_file, index=False)
     
     print(f"✅ Saved {len(transactions)} transactions to {transactions_file}")
+    
+    # Save transaction items as CSV
+    items_file = f"{output_dir}/transaction_items_historical.csv"
+    df_items = pd.DataFrame(transaction_items)
+    df_items.to_csv(items_file, index=False)
+    
+    print(f"✅ Saved {len(transaction_items)} transaction items to {items_file}")
     
     return clickstream_events[:num_events], transactions
 
@@ -339,20 +366,20 @@ def generate_reference_data(num_users=1000, output_dir="output"):
     
     os.makedirs(output_dir, exist_ok=True)
     
-    # Save product catalog
-    products_file = f"{output_dir}/products.json"
-    with open(products_file, 'w') as f:
-        json.dump(PRODUCTS, f, indent=2)
+    # Save product catalog as CSV
+    products_file = f"{output_dir}/products.csv"
+    df_products = pd.DataFrame(PRODUCTS)
+    df_products.to_csv(products_file, index=False)
     
     print(f"✅ Saved {len(PRODUCTS)} products to {products_file}")
     
-    # Generate and save users
+    # Generate and save users as CSV
     print(f"🔄 Generating {num_users} users...")
     users = generate_users(num_users)
     
-    users_file = f"{output_dir}/users.json"
-    with open(users_file, 'w') as f:
-        json.dump(users, f, indent=2)
+    users_file = f"{output_dir}/users.csv"
+    df_users = pd.DataFrame(users)
+    df_users.to_csv(users_file, index=False)
     
     print(f"✅ Saved {num_users} users to {users_file}")
     
@@ -394,8 +421,8 @@ if __name__ == "__main__":
     print("\n" + "=" * 60)
     print("✅ Data generation complete!")
     print("=" * 60)
-    print(f"\nFiles created in '{args.output}/' directory")
+    print(f"\nCSV files created in '{args.output}/' directory")
     print("\nNext steps:")
-    print("1. Upload files to cloud storage (S3/ADLS/GCS)")
-    print("2. Create Iceberg tables in CDW")
-    print("3. Load historical data into tables")
+    print("1. Upload CSV files to HDFS")
+    print("2. Create external tables pointing to CSV files")
+    print("3. Load data into Iceberg tables")

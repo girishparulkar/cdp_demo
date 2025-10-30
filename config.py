@@ -60,3 +60,13 @@ def get_impala_connection():
         port=IMPALA_PORT,
         auth_mechanism='NOSASL'  # Or 'PLAIN' if auth required
     )
+
+def get_kafka_config():
+    """Get Kafka connection configuration"""
+    return {
+        'bootstrap_servers': KAFKA_BOOTSTRAP_SERVERS,
+        'security_protocol': KAFKA_SECURITY_PROTOCOL,
+        'sasl_mechanism': KAFKA_SASL_MECHANISM,
+        'sasl_plain_username': KAFKA_USERNAME,
+        'sasl_plain_password': KAFKA_PASSWORD
+    }
