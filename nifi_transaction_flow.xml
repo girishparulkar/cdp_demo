@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<template encoding-version="1.3">
+    <description>StreamMart Transaction Data Ingestion Flow - Processes transaction events from Kafka</description>
+    <groupId>root</groupId>
+    <name>StreamMart_Transaction_Ingestion</name>
+    <snippet>
+        <processors>
+            <!-- ConsumeKafka Processor for Transactions -->
+            <processor>
+                <id>consume-kafka-txn-1</id>
+                <name>Consume Transactions from Kafka</name>
+                <class>org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_2_6</class>
+                <position x="100" y="100"/>
+                <config>
+                    <bulletinLevel>WARN</bulletinLevel>
+                    <schedulingPeriod>0 sec</schedulingPeriod>
+                    <properties>
+                        <entry>
+                            <key>bootstrap.servers</key>
+                            <value>${kafka.bootstrap.servers}</value>
+                        </entry>
+                        <entry>
+                            <key>topic</key>
+                            <value>streammart_transactions</value>
+                        </entry>
+                        <entry>
+                            <key>group.id</key>
+                            <value>nifi-transaction-consumer</value>
+                        </entry>
+                        <entry>
+                            <key>auto.offset.reset</key>
+                            <value>latest</value>
+                        </entry>
+                        <entry>
+                            <key>security.protocol</key>
+                            <value>PLAINTEXT</value>
+                        </entry>
+                    </properties>
+                </config>
+            </processor>
+
+            <!-- ValidateRecord - Schema Validation -->
+            <processor>
+                <id>validate-record-1</id>
+                <name>Validate Transaction Schema</name>
+                <class>org.apache.nifi.processors.standard.ValidateRecord</class>
+                <position x="300" y="100"/>
+                <config>
+                    <bulletinLevel>WARN</bulletinLevel>
+                    <properties>
+                        <entry>
+                            <key>Record Reader</key>
+                            <value>JsonTreeReader</value>
+                        </entry>
+                        <entry>
+                            <key>Record Writer</key>
+                            <value>JsonRecordSetWriter</value>
+                        </entry>
+                    </properties>
+                </config>
+            </processor>
+
+            <!-- ConvertRecord - Convert to Parquet -->
+            <processor>
+                <id>convert-record-1</id>
+                <name>Convert to Parquet</name>
+                <class>org.apache.nifi.processors.standard.ConvertRecord</class>
+                <position x="500" y="100"/>
+                <config>
+                    <bulletinLevel>WARN</bulletinLevel>
+                    <properties>
+                        <entry>
+                            <key>Record Reader</key>
+                            <value>JsonTreeReader</value>
+                        </entry>
+                        <entry>
+                            <key>Record Writer</key>
+                            <value>ParquetRecordSetWriter</value>
+                        </entry>
+                    </properties>
+                </config>
+            </processor>
+
+            <!-- PutHDFS - Write Parquet to HDFS -->
+            <processor>
+                <id>put-hdfs-txn-1</id>
+                <name>Write Transactions to HDFS</name>
+                <class>org.apache.nifi.processors.hadoop.PutHDFS</class>
+                <position x="700" y="100"/>
+                <config>
+                    <bulletinLevel>WARN</bulletinLevel>
+                    <properties>
+                        <entry>
+                            <key>Hadoop Configuration Resources</key>
+                            <value>/etc/hadoop/conf/core-site.xml,/etc/hadoop/conf/hdfs-site.xml</value>
+                        </entry>
+                        <entry>
+                            <key>Directory</key>
+                            <value>/user/cloud-user/streammart-demo/raw/transactions/date=${now():format('yyyy-MM-dd')}</value>
+                        </entry>
+                        <entry>
+                            <key>Conflict Resolution Strategy</key>
+                            <value>append</value>
+                        </entry>
+                        <entry>
+                            <key>Compression codec</key>
+                            <value>SNAPPY</value>
+                        </entry>
+                    </properties>
+                    <autoTerminatedRelationships>
+                        <relationship>success</relationship>
+                        <relationship>failure</relationship>
+                    </autoTerminatedRelationships>
+                </config>
+            </processor>
+        </processors>
+
+        <connections>
+            <connection>
+                <id>conn-txn-1</id>
+                <sourceId>consume-kafka-txn-1</sourceId>
+                <destinationId>validate-record-1</destinationId>
+                <selectedRelationships>
+                    <relationship>success</relationship>
+                </selectedRelationships>
+            </connection>
+            
+            <connection>
+                <id>conn-txn-2</id>
+                <sourceId>validate-record-1</sourceId>
+                <destinationId>convert-record-1</destinationId>
+                <selectedRelationships>
+                    <relationship>valid</relationship>
+                </selectedRelationships>
+            </connection>
+            
+            <connection>
+                <id>conn-txn-3</id>
+                <sourceId>convert-record-1</sourceId>
+                <destinationId>put-hdfs-txn-1</destinationId>
+                <selectedRelationships>
+                    <relationship>success</relationship>
+                </selectedRelationships>
+            </connection>
+        </connections>
+    </snippet>
+</template>
