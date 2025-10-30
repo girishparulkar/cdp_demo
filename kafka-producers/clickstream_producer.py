@@ -1,6 +1,6 @@
 # clickstream_producer.py
 """
-Real-time Clickstream Event Producer for ShopNow Demo
+Real-time Clickstream Event Producer for streammart Demo
 Produces realistic user behavior events to Kafka
 
 Usage:
@@ -20,7 +20,7 @@ try:
     from config import get_kafka_config, KAFKA_TOPIC_CLICKSTREAM
 except ImportError:
     print("⚠️  config.py not found. Using default settings.")
-    KAFKA_TOPIC_CLICKSTREAM = 'shopnow_clickstream'
+    KAFKA_TOPIC_CLICKSTREAM = 'streammart_clickstream'
     def get_kafka_config():
         return {
             'bootstrap_servers': 'localhost:9092',

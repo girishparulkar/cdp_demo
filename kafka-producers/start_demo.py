@@ -26,7 +26,7 @@ def start_demo(duration=15, clickstream_rate=10, transaction_rate=1):
         transaction_rate: Transactions per minute
     """
     print("=" * 70)
-    print("🚀 SHOPNOW DEMO - STARTING ALL PRODUCERS")
+    print("🚀 streammart DEMO - STARTING ALL PRODUCERS")
     print("=" * 70)
     print(f"⏱️  Duration: {duration} minutes")
     print(f"📊 Clickstream: {clickstream_rate} events/sec")

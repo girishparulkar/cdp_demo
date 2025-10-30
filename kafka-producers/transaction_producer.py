@@ -21,7 +21,7 @@ from generate_data import generate_transaction
 try:
     from config import get_kafka_config, KAFKA_TOPIC_TRANSACTIONS
 except ImportError:
-    KAFKA_TOPIC_TRANSACTIONS = 'shopnow_transactions'
+    KAFKA_TOPIC_TRANSACTIONS = 'streammart_transactions'
     def get_kafka_config():
         return {'bootstrap_servers': 'localhost:9092'}
 
